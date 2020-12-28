@@ -119,4 +119,44 @@ const questions = {
   }
 };
 
-inquirer.prompt(questions.start);
+inquirer
+  .prompt(questions.start)
+  .then(answers => { 
+    switch(answers.start) {
+        case "Add department.":
+        inquirer.prompt(questions.addDept);
+        break;
+        case "Add role.":
+        inquirer.prompt(questions.addRole);
+        break;
+        case "Add employee.":
+        inquirer.prompt(questions.addAndAssign);
+        break;
+        case"View departments.":
+        inquirer.prompt(questions.viewDept);
+        break;
+        case "View roles.":
+        inquirer.prompt(questions.viewRole);
+        break;
+        case "View employees.":
+        inquirer.prompt(questions.viewEmployee);
+        break;
+        case "View dept. budget (i.e. combined salaries for a department).":
+        inquirer.prompt(questions.addDept);
+        break;
+        case "Update employee role.":
+        inquirer.prompt(questions.updateRole);
+        break;
+        case "Update employee manager.":
+        inquirer.prompt(questions.updateManager);
+        break;
+        case "Delete department.":
+        inquirer.prompt(questions.delDept);
+        break;
+        case "Delete roles.":
+        inquirer.prompt(questions.delRole);
+        break;
+        case "Delete empoyees.":
+        inquirer.prompt(questions.delEmps);
+      }
+    });
