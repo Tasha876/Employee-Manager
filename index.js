@@ -1,6 +1,8 @@
 const inquirer = require("inquirer");
 const mysql = require("mysql");
 
+const welcome = "_______  __   __  _______  ___      _______  __   __  _______  _______\n|       ||  |_|  ||       ||   |    |       ||  | |  ||       ||       |\n|    ___||       ||    _  ||   |    |   _   ||  |_|  ||    ___||    ___|\n|   |___ |       ||   |_| ||   |    |  | |  ||       ||   |___ |   |___\n|    ___||       ||    ___||   |___ |  |_|  ||_     _||    ___||    ___|\n|   |___ | ||_|| ||   |    |       ||       |  |   |  |   |___ |   |___\n|_______||_|   |_||___| __ |_______||_______| _|___|  |_______||_______|\n|       ||  | |  ||  |_|  ||  |_|  ||   _   ||    _ |  |  | |  |\n|  _____||  | |  ||       ||       ||  |_|  ||   | ||  |  |_|  |\n| |_____ |  |_|  ||       ||       ||       ||   |_||_ |       |\n|_____  ||       ||       ||       ||       ||    __  ||_     _|\n_____| ||       || ||_|| || ||_|| ||   _   ||   |  | |  |   |\n|_______||_______||_|   |_||_|   |_||__| |__||___|  |_|  |___|\n\n";
+// list of questions that will be prompted by Inquirer
 const questions = {
   start: {
     name: "start",
@@ -118,45 +120,49 @@ const questions = {
     choices: []
   }
 };
+console.log(welcome);
 
 inquirer
+  // ask starting questions...
   .prompt(questions.start)
+  // then act according to selection
   .then(answers => { 
-    switch(answers.start) {
+    switch (answers.start) {
         case "Add department.":
-        inquirer.prompt(questions.addDept);
-        break;
+          inquirer.prompt(questions.addDept);
+          break;
         case "Add role.":
-        inquirer.prompt(questions.addRole);
-        break;
+          inquirer.prompt(questions.addRole);
+          break;
         case "Add employee.":
-        inquirer.prompt(questions.addAndAssign);
-        break;
-        case"View departments.":
-        inquirer.prompt(questions.viewDept);
-        break;
+          inquirer.prompt(questions.addAndAssign);
+          break;
+        case "View departments.":
+          inquirer.prompt(questions.viewDept);
+          break;
         case "View roles.":
-        inquirer.prompt(questions.viewRole);
-        break;
+          inquirer.prompt(questions.viewRole);
+          break;
         case "View employees.":
-        inquirer.prompt(questions.viewEmployee);
-        break;
+          inquirer.prompt(questions.viewEmployee);
+          break;
         case "View dept. budget (i.e. combined salaries for a department).":
-        inquirer.prompt(questions.addDept);
-        break;
+          inquirer.prompt(questions.addDept);
+          break;
         case "Update employee role.":
-        inquirer.prompt(questions.updateRole);
-        break;
+          inquirer.prompt(questions.updateRole);
+          break;
         case "Update employee manager.":
-        inquirer.prompt(questions.updateManager);
-        break;
+          inquirer.prompt(questions.updateManager);
+          break;
         case "Delete department.":
-        inquirer.prompt(questions.delDept);
-        break;
+          inquirer.prompt(questions.delDept);
+          break;
         case "Delete roles.":
-        inquirer.prompt(questions.delRole);
-        break;
+          inquirer.prompt(questions.delRole);
+          break;
         case "Delete empoyees.":
-        inquirer.prompt(questions.delEmps);
+          inquirer.prompt(questions.delEmps);
+          break;
       }
     });

@@ -1,2 +1,2 @@
 # Employee-Manager
-A CSM for viewing and updating employee information
+A CMS for viewing and updating employee information
