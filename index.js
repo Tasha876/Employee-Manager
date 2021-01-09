@@ -1,10 +1,51 @@
 const inquirer = require("inquirer");
 const mysql = require("mysql");
-const { connection, addEmployee } = require("./mysql-server");
+const server = require("./mysql-server");
 
 const cTable = require('console.table');
 
-const server = require('./mysql-server');
+const addDept = async (name) => {
+  server.addToTable("departments", ["name", name])
+  console.log(`This is the new list of departments:`)
+  server.print("departments", "id", "name");
+}
+
+const addRole = async (title, salary, dept) => {
+  server.addToTable("roles", ["title", title],["salary", salary], ["department_id", dept])
+    console.log(`This is the new list of roles:`)
+  server.print("roles join departments on roles.department_id = departments.id", "roles.title","departments.name as department","roles.salary");
+}
+
+const addEmployee = async (empName, role_id, mgr_id) => {
+  let first; let last;
+  if (empName.split(",").length == 2)  {
+    first = empName.split(",")[1].trim();
+    last = empName.split(",")[0].trim();
+  } else if (empName.split(" ").length == 2)  {
+    first = empName.split(" ")[0].trim();
+    last = empName.split(" ")[1].trim();
+  }
+  server.addToTable("employees", ["first_name", first],["last_name", last], ["role_id", role_id],["manager_id", mgr_id])
+  console.log(`This is the new list of employees:`)
+  server.print("employees JOIN roles ON employees.role_id = roles.id", "employees.id", "first_name", "last_name","title");
+}
+
+const delEmployee = async (...ids) => {
+  // because I can't figure out how to get the name from inquirer in the response :/
+  // connection.query(`SELECT first_name, last_name FROM employees WHERE id IN (${ids.join()})`, (err, res) => {
+  //   if (err) throw err;
+  //   names = res.map(name => name.first_name + ' ' + name.last_name);
+  //   console.log(`Deleting ${names} from the database`)
+  // }); 
+  console.log(`The following employees have been deleted from the database`);
+  server.print(`employees WHERE id IN (${ids.join()})`,`first_name`, `last_name`)
+  let names = ids.map(id => {
+    server.delFromTable("employees", "id", id)
+  });
+}
+  // let deletedEmps = ids.map(id => id.name).join(", ")
+  // console.log('The employees', deletedEmps, 'have been removed from the system')
+
 
 // class questionToAsk {
 //   constructor(question) {
@@ -81,7 +122,7 @@ const run = async () => {
         name: "dept",
         type: "list",
         message: "Which dept does this role belong to?",
-        choices: await server.getNameAndId('departments','id','name'),
+        choices: [... await server.getNameAndId('departments','id','name'), 'other', 'go back to start'],
       },
       {
         name: "salary",
@@ -104,7 +145,7 @@ const run = async () => {
         name: "dept",
         type: "list",
         message: "Which department would you like to assign to this employee?",
-        choices: await server.getNameAndId('departments','id','name'),
+        choices: [... await server.getNameAndId('departments','id','name'), 'other', 'go back to start'],
       },
       {
         name: "role",
@@ -112,7 +153,7 @@ const run = async () => {
         message: "Which role would you like to assign to this employee?",
         choices: async answers => {
           let table = `roles  where roles.department_id = ${answers.dept}`;
-          return await server.getNameAndId(table, 'id', 'title');
+          return [... await server.getNameAndId(table, 'id', 'title'), 'other', 'go back to start'];
         },
       },
     ],
@@ -120,19 +161,19 @@ const run = async () => {
       name: "deptToView",
       type: "list",
       message: "Which department would you like to view?",
-      choices: []
+      choices: await server.getNameAndId('departments','id','name'),
     },
     viewRole: {
       name: "roleToView",
       type: "list",
       message: "Which role would you like to view?",
-      choices: []
+      choices: await server.getNameAndId('roles','id','title'),
     },
     viewEmployee: {
       name: "EmpToView",
       type: "list",
       message: "Which employee's information would you like to see?",
-      choices: []
+      choices: await server.getNameAndId('employees','id','first_name', 'last_name'),
     },
     viewBudget: {
       name: "EmpToView",
@@ -198,24 +239,24 @@ const run = async () => {
           case "Add department.":
               const dept = await inquirer.prompt(questions.addDept);
               // needs to add dept before moving on (e.g. needs depts to add role)
-              await server.addDept(dept.deptName);
+              await addDept(dept.deptName);
               break;
           case "Add role.":
             const role = await inquirer.prompt(questions.addRole);
-            await server.addRole(role.role, role.salary, role.dept);
+            await addRole(role.role, role.salary, role.dept);
             break;
           case "Add employee.":
             const emp = await inquirer.prompt(questions.addAndAssign);
-            await server.addEmployee(emp.name, emp.role, 1);
+            await addEmployee(emp.name, emp.role, 1);
             break;
           case "View departments.":
-            inquirer.prompt(questions.viewDept);
+            const vdept = await inquirer.prompt(questions.viewDept);
             break;
           case "View roles.":
-            inquirer.prompt(questions.viewRole);
+            const vrole = await inquirer.prompt(questions.viewRole);
             break;
           case "View employees.":
-            inquirer.prompt(questions.viewEmployee);
+            const vemp = await inquirer.prompt(questions.viewEmployee);
             break;
           case "View dept. budget (i.e. combined salaries for a department).":
             inquirer.prompt(questions.addDept);
@@ -234,7 +275,7 @@ const run = async () => {
             break;
           case "Delete employees.":
             const delEmps = await inquirer.prompt(questions.delEmps);
-            await server.delEmployee(...delEmps.empsToBeDel);
+            await delEmployee(...delEmps.empsToBeDel);
             break;
           case "exit":
             console.log("goodbye")
@@ -250,10 +291,6 @@ const run = async () => {
 
 }
 
-server.connection.connect((err) => {
-  if (err) throw err;
-  console.log(`connected as id ${server.connection.threadId}\n`);
-  run();
-});
+run();
 
 // module.exports = run;
