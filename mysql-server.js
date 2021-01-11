@@ -1,30 +1,30 @@
 const mysql = require('mysql');
 
-// const connection = mysql.createConnection({
-//   host: 'localhost',
-//   port: 3306,
-//   user: 'root',
-//   password: '',
-//   database: 'employee_manager_db',
-// });
-
 const connection = mysql.createConnection({
-  host: 'db4free.net',
+  host: 'localhost',
   port: 3306,
-  user: 'natasha321',
-  password: 'l00p33123',
-  database: 'employee_manager',
+  user: 'root',
+  password: 'f0rcheTTes*',
+  database: 'employee_manager_db',
 });
+
+// const connection = mysql.createConnection({
+//   host: 'db4free.net',
+//   port: 3306,
+//   user: 'natasha321',
+//   password: 'l00p33123',
+//   database: 'employee_manager',
+// });
 
 const server = {
   createTables () {
-    let createRoles = 
+    let createDepartments = 
     `CREATE TABLE if not exists 
     departments (
       id INT auto_increment, 
       name VARCHAR(30), 
       PRIMARY KEY(id))`
-    let createDepartments = 
+    let createRoles = 
     `CREATE TABLE if not exists 
     roles (
       id INT auto_increment,
@@ -32,8 +32,8 @@ const server = {
       salary DECIMAL(12,2),
       department_id INT,
       PRIMARY KEY (id),
-      FOREIGN KEY (department_id),
-        REFERENCES departments (id)`
+      FOREIGN KEY (department_id)
+        REFERENCES departments (id))`
     let createEmployees =
       `CREATE TABLE if not exists 
       employees (
@@ -41,16 +41,16 @@ const server = {
       first_name VARCHAR(30),
       last_name VARCHAR(30),
       role_id INT,
-      manager_id INT,
+      manager_id INT DEFAULT NULL,
       PRIMARY KEY(id),
       FOREIGN KEY (role_id)
         REFERENCES roles (id),
       FOREIGN KEY (manager_id)
-        REFERENCES employees(id))`
-    connection.query(createRoles, (err,res) => {
+        REFERENCES employees(id));`
+    connection.query(createDepartments, (err,res) => {
       if (err) throw err;
     });
-    connection.query(createDepartments, (err,res) => {
+    connection.query(createRoles, (err,res) => {
       if (err) throw err;
     });
     connection.query(createEmployees, (err,res) => {
@@ -59,18 +59,25 @@ const server = {
   },
 
   print (table, ...headings) {
+    return new Promise ((resolve, reject) => {
       connection.query(`SELECT ${headings.join(",")} FROM ${table}`, (err, res) => {
       if (err) throw err;
-      console.table(res);
+      res.length?  console.table(res) : console.log(`There is nothing currently in this table`);
+      }); return resolve()
     })   
   },
 
   addToTable (table, ...items) {
-    console.log(`Adding ${items[0][1]} to the list of ${table}.`);
-    connection.query(`INSERT INTO ${table} (${items.map(item => item[0]).join(",")}) values("${items.map(item => item[1]).join("\",\"")}")`,
-      (err, res) => {
-        if (err) throw err;
-    });
+    return new Promise ((resolve, reject) => {
+      console.log(`Adding ${items[0][1]} to the list of ${table}.`);
+      items = items.filter(item => item[1] != '');
+      connection.query(`INSERT INTO ${table} (${items.map(item => item[0]).join(",")}) VALUES("${items.map(item => item[1]).join("\",\"")}")`,
+        (err, res) => {
+          if (err)
+            throw err;
+          return resolve(res.insertId);
+        }); 
+      });  
   },
 
   delFromTable (table, target, item) {
@@ -79,6 +86,14 @@ const server = {
       (err, res) => {
         if (err) throw err;
     }); 
+  },
+
+  update (table, field, id, updated) {
+    return new Promise ((resolve, reject) => {
+      connection.query(`UPDATE ${table} SET ${field} = ${updated} WHERE ${table}.id = ${id}`, (err, res) => {
+      if (err) throw err;
+      }); return resolve()
+    })   
   },
 
   getNameAndId (table, id = "id", ...names) { 
@@ -95,7 +110,9 @@ const server = {
 
 connection.connect((err) => {
   if (err) throw err;
+  server.createTables();
   console.log(`connected as id ${connection.threadId}\n`);
 });
 
 module.exports = server;
+
