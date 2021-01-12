@@ -17,9 +17,10 @@ const main = async () => {
   console.log(welcome);
 
   const run = async () => {
-  let getMain = await require("./questions").getMain();
-  let main =  getMain.main;
-  let questions =  getMain.questions;
+  let getMain = await require("./main_functions")();
+  let main =  getMain;
+  let getQuestions = await require("./questions")();
+  let questions =  getQuestions;
 
   // const addDept = async (ret = false) => {
   //   let dept = await inquirer.prompt(questions.addDept);
@@ -120,8 +121,7 @@ const main = async () => {
             break;
           case "exit":
             console.log("goodbye")
-            // connection.end();
-            break;
+            return;
           } 
 
           run()

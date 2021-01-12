@@ -1,20 +1,20 @@
 const mysql = require('mysql');
 
-const connection = mysql.createConnection({
-  host: 'localhost',
-  port: 3306,
-  user: 'root',
-  password: 'f0rcheTTes*',
-  database: 'employee_manager_db',
-});
-
 // const connection = mysql.createConnection({
-//   host: 'db4free.net',
+//   host: 'localhost',
 //   port: 3306,
-//   user: 'natasha321',
-//   password: 'l00p33123',
-//   database: 'employee_manager',
+//   user: 'root',
+//   password: '',
+//   database: 'employee_manager_db',
 // });
+
+const connection = mysql.createConnection({
+  host: 'db4free.net',
+  port: 3306,
+  user: 'natasha321',
+  password: 'l00p33123',
+  database: 'employee_manager',
+});
 
 const server = {
   createTables () {
@@ -90,6 +90,7 @@ const server = {
 
   update (table, field, id, updated) {
     return new Promise ((resolve, reject) => {
+      console.log('Updating...')
       connection.query(`UPDATE ${table} SET ${field} = ${updated} WHERE ${table}.id = ${id}`, (err, res) => {
       if (err) throw err;
       }); return resolve()
