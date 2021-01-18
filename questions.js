@@ -25,7 +25,7 @@ const getQuestions = async () => {
         new inquirer.Separator('----Delete----'),
         "Delete department.",
         "Delete roles.",
-        "Delete employees."
+        "Delete employee."
       ]
     },
     addDept: {
@@ -48,7 +48,8 @@ const getQuestions = async () => {
         name: "dept",
         type: "list",
         message: "Which dept does this role belong to?",
-        choices: [...await server.getNameAndId('departments','id','name'), 'other', 'go back to start']
+        choices: [...await server.getNameAndId('departments','id','name'), 'other', 'go back to start'],
+        when: answers => answers.role !== 'other',
       },
     ],
     addAndAssign: [
@@ -60,13 +61,15 @@ const getQuestions = async () => {
           let valid = await name.match(/^([\w-]+(\s){1}[\w-]+'?[\w-]*)$|^(([\w\s-]+'?[\w\s-]*))*(,){1}[\w\s-]+$/g);
           if (!valid) return 'Please enter the name in the required format, for names with a space in the first or last name, please use Last, First.';
           else return true;
-        } 
+        },
+        when: answers => !answers.name,
       },
       {
         name: "dept",
         type: "list",
         message: "Which department would you like to assign to this employee?",
         choices: [...await server.getNameAndId('departments','id','name'), 'other', 'go back to start'],
+        when: answers => !answers.dept,
       },
       {
         name: "role",
@@ -75,15 +78,23 @@ const getQuestions = async () => {
         choices: async answers => {
           let table = `roles  where roles.department_id = ${answers.dept}`;
           return [...await server.getNameAndId(table, 'id', 'title'), 'other', 'go back to start'];
-        }
+        },
+        when: answers => answers.dept !== 'other',
       },
       {
         name: "boss",
         type: "list",
         message: "Which manager would you like to assign to this employee?",
-        choices: [...await server.getNameAndId('employees','id','first_name',"last_name"), {value: "", name: 'has no manager'}, 'other', 'go back to start'],
+        choices: [...await server.getNameAndId('employees','id','first_name',"last_name"), {value: null, name: 'has no manager'}, 'other','go back to start'],
+        when: answers => answers.dept !== 'other' && answers.role !== 'other',
       },
     ],
+    addMgr: {
+      name: "boss",
+      type: "list",
+      message: "Which manager would you like to assign to this employee?",
+      choices: [...await server.getNameAndId('employees','id','first_name',"last_name"), {value: null, name: 'has no manager'}, ,'other','go back to start'],
+    },
     viewDept: {
       name: "deptToView",
       type: "list",
@@ -137,6 +148,7 @@ const getQuestions = async () => {
         type: "list",
         message: "Which manager would you like to assign the employee to?",
         choices: await server.getNameAndId('employees','id','first_name', 'last_name'),
+        when: answers => answers.mgr !== null,
       },
       {
         name: "emps",
@@ -144,10 +156,10 @@ const getQuestions = async () => {
         message: "Which employee(s) would you like to assign to this manager?",
         choices: async answers => {
           console.log(answers.mgr);
+          console.log('here')
           let mgrs = [...await server.getNameAndId('employees','id','first_name', 'last_name')].filter(id => id.value != answers.mgr);
-          console.log(mgrs);
           return mgrs;
-        }
+        },
       }
     ],
     delDept: [
@@ -162,8 +174,12 @@ const getQuestions = async () => {
       type: "checkbox",
       message: "Which employees from this department would you like to delete",
       choices: async answers => {
-        let delEmps = await server.getNameAndId(`employees JOIN roles ON employees.role_id = roles.id JOIN departments ON departments.id = roles.department_id WHERE departments.id = ${answers.dept}`,'id','first_name','last_name');
-        return delEmps;
+        let delEmp = await server.getNameAndIdWhere(`employees`,`departments`,answers.dept,`first_name`,`last_name`);
+        return delEmp;
+      },
+      when: async answers => {
+        let delEmp = await server.getNameAndIdWhere(`employees`,`departments`,answers.dept,`first_name`,`last_name`);
+        return delEmp.length;
       }
     },
   ],
@@ -173,12 +189,28 @@ const getQuestions = async () => {
       message: "Which role(s) would you like to delete?",
       choices: await server.getNameAndId('roles','id','name'),
     },
-    delEmps: {
-      name: "empsToBeDel",
-      type: "checkbox",
-      message: "Which employees would you like to delete?",
-      choices: await server.getNameAndId('employees','id','first_name','last_name')
-    }
+    delEmps: [
+      {
+        name: "empToBeDel",
+        type: "list",
+        message: "Which employee would you like to delete? This employee's subordinates will no longer have a manager.",
+        choices: await server.getNameAndId('employees','id','first_name','last_name'),
+        when: answers => !answers.empToBeDel,
+      },
+      // {
+      //   name: "workers",
+      //   type: "checkbox",
+      //   message: "Which of this employees subordinates would you like to delete?",
+      //   choices: async answers => {
+      //     let options = await server.getNameAndId(`employees WHERE manager_id = ${answers.empToBeDel}`,'id','first_name','last_name');
+      //     return options;
+      //   },
+      //   when: async answers => {
+      //     let options = await server.getNameAndId(`employees WHERE manager_id = ${answers.empToBeDel}`,'id','first_name','last_name');
+      //     return options.length;
+      //   }
+      // },
+    ],
   };
   return questions;
 }

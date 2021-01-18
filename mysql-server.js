@@ -1,19 +1,11 @@
 const mysql = require('mysql');
 
-// const connection = mysql.createConnection({
-//   host: 'localhost',
-//   port: 3306,
-//   user: 'root',
-//   password: '',
-//   database: 'employee_manager_db',
-// });
-
 const connection = mysql.createConnection({
-  host: 'db4free.net',
+  host: 'localhost',
   port: 3306,
-  user: 'natasha321',
-  password: 'l00p33123',
-  database: 'employee_manager',
+  user: 'root',
+  password: 'f0rcheTTes*',
+  database: 'employee_manager_db',
 });
 
 const server = {
@@ -60,7 +52,7 @@ const server = {
 
   print (table, ...headings) {
     return new Promise ((resolve, reject) => {
-      connection.query(`SELECT ${headings.join(",")} FROM ${table}`, (err, res) => {
+      connection.query(`SELECT ${headings.join()} FROM ${table}`, (err, res) => {
       if (err) throw err;
       res.length?  console.table(res) : console.log(`There is nothing currently in this table`);
       }); return resolve()
@@ -70,18 +62,20 @@ const server = {
   addToTable (table, ...items) {
     return new Promise ((resolve, reject) => {
       console.log(`Adding ${items[0][1]} to the list of ${table}.`);
-      items = items.filter(item => item[1] != '');
-      connection.query(`INSERT INTO ${table} (${items.map(item => item[0]).join(",")}) VALUES("${items.map(item => item[1]).join("\",\"")}")`,
+      let object = {};
+      items.map(item => object[item[0]] = item[1]);
+      const query = connection.query(`INSERT INTO ?? SET ?`,
+      [table, object],
         (err, res) => {
           if (err)
             throw err;
+          
           return resolve(res.insertId);
         }); 
-      });  
+      });
   },
 
-  delFromTable (table, target, item) {
-    // console.log(`Deleting ${target} ${item} from ${table}.`);
+  async delFromTable (table, target, item) {
     connection.query(`DELETE FROM ${table} WHERE ${target} = "${item}"`,
       (err, res) => {
         if (err) throw err;
@@ -90,19 +84,40 @@ const server = {
 
   update (table, field, id, updated) {
     return new Promise ((resolve, reject) => {
-      console.log('Updating...')
-      connection.query(`UPDATE ${table} SET ${field} = ${updated} WHERE ${table}.id = ${id}`, (err, res) => {
+      connection.query(`UPDATE ?? SET ? WHERE ??.id = ?`,
+      [table,{[field] : updated},table,id],
+      (err, res) => {
       if (err) throw err;
-      }); return resolve()
+      }); 
+      console.log(`This ${table.replace(/s$/,"'s")} ${field.split('_')[0]} has been updated`)
+      return resolve();
     })   
   },
 
-  getNameAndId (table, id = "id", ...names) { 
+  getNameAndId (table, id, ...names) { 
     return new Promise ((resolve, reject) => {
       connection.query(`SELECT * FROM ${table}`, async (err, res) => {
       if (err) reject(err);
       const r = res.map(packet => ({ name: 
         names.map( name => packet[name]).join(' '), value: packet[id]}));
+      return resolve(r);
+      }); 
+    })
+  },
+
+  getNameAndIdWhere (mainTable, secondTable, secondTableId, ...names) { 
+    return new Promise ((resolve, reject) => {
+      let table;
+      switch(mainTable) {
+        case 'departments': table = 'departments'; break;
+        case 'roles': table = 'roles JOIN departments ON departments.id = roles.department_id'; break;
+        case 'employees': table = 'employees JOIN roles ON employees.role_id = roles.id JOIN departments ON departments.id = roles.department_id'; break;
+      }
+      let query = `SELECT ${mainTable}.id, ${names.map(name => mainTable + '.' + name).join()} FROM ${table} WHERE ${secondTable}.id = ${secondTableId}`
+      connection.query(query, async (err, res) => {
+      if (err) reject(err);
+      const r = res.map(packet => ({ name: 
+      names.map( name => packet[name]).join(' '), value: packet['id']}));
       return resolve(r);
       }); 
     })

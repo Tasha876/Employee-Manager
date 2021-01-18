@@ -115,9 +115,8 @@ const main = async () => {
           case "Delete roles.":
             inquirer.prompt(questions.delRole);
             break;
-          case "Delete employees.":
-            const delEmps = await inquirer.prompt(questions.delEmps);
-            await main.delEmployee(...delEmps.empsToBeDel);
+          case "Delete employee.":
+            await main.delEmployee();
             break;
           case "exit":
             console.log("goodbye")
