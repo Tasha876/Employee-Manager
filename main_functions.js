@@ -1,5 +1,6 @@
 const inquirer = require("inquirer");
-const server = require("./mysql-server");
+const { sum } = require("./mysql-server");
+const server = require("./mysql-server").server;
 
 const getMain = async () => {
 
@@ -21,8 +22,13 @@ const getMain = async () => {
   },
 
     async addRole (print = false, specific = '') {
-      let {role, salary, dept} = await inquirer.prompt(questions.addRole);
+      let dept;
+      let {role, salary} = await inquirer.prompt(questions.addRole.slice(0,2));
       if (specific) dept = specific;
+      else {
+        dept = await inquirer.prompt(questions.addRole[2]);
+        dept = dept.dept;
+      }
       switch(dept) {
         case 'other':
           dept = await main.addDept(false)
@@ -43,10 +49,8 @@ const getMain = async () => {
       let { name, dept, role, boss } = await inquirer.prompt(questions.addAndAssign);
       if (specDept) dept = specDept; 
       if (specRole) role = specRole;
-      console.log([name,dept,boss,role]);
       switch(dept) {
         case 'go back to start':
-          goBack = true;
           return;
         case 'other':
           dept = await this.addDept(false);
@@ -58,7 +62,7 @@ const getMain = async () => {
           return;
         case 'other':
           role = await this.addRole(false, dept);
-          waitForBoss = await inquirer.prompt(questions.addMgr);
+          waitForBoss = await inquirer.prompt(questions.addAndAssign[3]);
           boss = waitForBoss.boss;
           break;
       };
@@ -89,27 +93,26 @@ const getMain = async () => {
       return empId;  
     },
 
-    async delEmployee (specEmp = '') {
+    async delEmployee (specEmp = '', print = true) {
       let empToBeDel;
       if (specEmp) empToBeDel = specEmp;
       else {
         let e = await inquirer.prompt(questions.delEmps);
         empToBeDel = e.empToBeDel;
       }
+      if (print) {
       console.log(`The following employee will be deleted from the database`);
-      server.print(`employees WHERE id = ${empToBeDel}`,`first_name`, `last_name`)
+      }
+      await server.print(`employees WHERE id = ${empToBeDel}`,`first_name`, `last_name`)
       let workers = await server.getNameAndId(`employees WHERE manager_id = ${empToBeDel}`,'id','first_name','last_name')
       workers.map(worker => server.update("employees","manager_id",worker.value, null));
       await server.delFromTable("employees","id",empToBeDel)
     },
 
     async delEmployees (...ids) {
-      console.log(ids);
       if (!ids.length) return;
       console.log(`The following employees will be deleted from the database`);
       server.print(`employees WHERE id IN (${ids.join()})`,`first_name`, `last_name`)
-      console.log(ids);
-      console.log(ids.reverse())
       ids.reverse();
       ids.map(id => {
         server.delFromTable("employees", "id", id)
@@ -139,32 +142,39 @@ const getMain = async () => {
         pemp = e.pemp;
       }
       let { pdept, prole } = await inquirer.prompt(questions.updateRole.slice(1));
-      // server.update('employees','role_id',`employees.${pemp}.role_id`,prole);
       await server.update(`employees`,`role_id`,pemp,prole)
+      console.log('The employees role has been updated.')
     },
 
     async updateManager () {
       let { emps, mgr } = await inquirer.prompt(questions.updateManager);
       emps.map(emp => server.update(`employees`,`manager_id`,emp,mgr))
+      console.log('The employees manager has been updated.')
+
     },
 
     async delDept () {
-      let { dept, emps } = await inquirer.prompt(questions.delDept);
-      if (emps) await emps.map(emp => this.delEmployee(emp));
-      let savedEmps = await server.getNameAndIdWhere(`employees`,`departments`,dept,`first_name`,`last_name`);
-      await savedEmps.map(async emp => await this.updateEmpRole(emp));
+      let { dept } = await inquirer.prompt(questions.delDept);
+      let emps = await server.getNameAndIdWhere(`employees`,`departments`,dept,`first_name`,`last_name`);
+      // ******* will eventuall relocate saved employee, below did not work :( *********
+      // for now just deletes all employees in the dept
+      // let savedEmps = await server.getNameAndIdWhere(`employees`,`departments`,dept,`first_name`,`last_name`);
+      // await savedEmps.map(async emp => await this.updateEmpRole(emp));
+      if (emps.length) await emps.map(emp => this.delEmployee(emp.value, false));
       let rolesToDel = await server.getNameAndIdWhere('roles','departments',dept,'title')
-      let roleId;
-      rolesToDel.map(role => {
-        let empsToDel = server.getNameAndIdWhere('employees','roles',role.value,'id');
-        if (empsToDel.length) empsToDel.map(emp => server.delFromTable('employees','id',emp.value));
-        roleId = server.delFromTable('roles','department_id',role.value); 
+      rolesToDel.map(async role => {
+        await server.delFromTable('roles','department_id',role.value); 
       })
       server.delFromTable('departments','id',dept);
+      console.log('The department has been deleted.')
     },
+
+    async viewBudget () {
+      let { dept } = await inquirer.prompt(questions.viewBudget);
+      server.sum(dept);
+    }
   };
 return main;
 }
-// SELECT roles.id, roles.title FROM roles JOIN departments ON departments.id = roles.department_id WHERE departments.id = 11
 
 module.exports = getMain;

@@ -1,8 +1,9 @@
-const server = require("./mysql-server");
+const server = require("./mysql-server").server;
 
 const inquirer = require("inquirer");
 
 const getQuestions = async () => {
+  
   // list of questions that will be prompted by Inquirer
   const questions = {
     start: {
@@ -49,7 +50,6 @@ const getQuestions = async () => {
         type: "list",
         message: "Which dept does this role belong to?",
         choices: [...await server.getNameAndId('departments','id','name'), 'other', 'go back to start'],
-        when: answers => answers.role !== 'other',
       },
     ],
     addAndAssign: [
@@ -89,12 +89,6 @@ const getQuestions = async () => {
         when: answers => answers.dept !== 'other' && answers.role !== 'other',
       },
     ],
-    addMgr: {
-      name: "boss",
-      type: "list",
-      message: "Which manager would you like to assign to this employee?",
-      choices: [...await server.getNameAndId('employees','id','first_name',"last_name"), {value: null, name: 'has no manager'}, ,'other','go back to start'],
-    },
     viewDept: {
       name: "deptToView",
       type: "list",
@@ -114,10 +108,10 @@ const getQuestions = async () => {
       choices: await server.getNameAndId('employees','id','first_name', 'last_name'),
     },
     viewBudget: {
-      name: "budget",
+      name: "dept",
       type: "list",
       message: "Which department's budget would you like to view?",
-      choices: []
+      choices: await server.getNameAndId('departments','id','name'),
     },
     updateRole: [
       {
@@ -147,7 +141,7 @@ const getQuestions = async () => {
         name: "mgr",
         type: "list",
         message: "Which manager would you like to assign the employee to?",
-        choices: await server.getNameAndId('employees','id','first_name', 'last_name'),
+        choices: [...await server.getNameAndId('employees','id','first_name', 'last_name'), {value: null, name: 'has no manager'}],
         when: answers => answers.mgr !== null,
       },
       {
@@ -166,22 +160,22 @@ const getQuestions = async () => {
       {
       name: "dept",
       type: "list",
-      message: "Which department would you like to delete?",
+      message: "Which department would you like to delete? All employees and roles in this department will also be deleted.",
       choices: await server.getNameAndId('departments','id','name'),
     },
-    {
-      name: "emps",
-      type: "checkbox",
-      message: "Which employees from this department would you like to delete",
-      choices: async answers => {
-        let delEmp = await server.getNameAndIdWhere(`employees`,`departments`,answers.dept,`first_name`,`last_name`);
-        return delEmp;
-      },
-      when: async answers => {
-        let delEmp = await server.getNameAndIdWhere(`employees`,`departments`,answers.dept,`first_name`,`last_name`);
-        return delEmp.length;
-      }
-    },
+    // {
+    //   name: "emps",
+    //   type: "checkbox",
+    //   message: "Which employees from this department would you like to delete",
+    //   choices: async answers => {
+    //     let delEmp = await server.getNameAndIdWhere(`employees`,`departments`,answers.dept,`first_name`,`last_name`);
+    //     return delEmp;
+    //   },
+    //   when: async answers => {
+    //     let delEmp = await server.getNameAndIdWhere(`employees`,`departments`,answers.dept,`first_name`,`last_name`);
+    //     return delEmp.length;
+    //   }
+    // },
   ],
     delRole: {
       name: "rolesToBeDel",

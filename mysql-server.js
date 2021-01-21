@@ -89,7 +89,6 @@ const server = {
       (err, res) => {
       if (err) throw err;
       }); 
-      console.log(`This ${table.replace(/s$/,"'s")} ${field.split('_')[0]} has been updated`)
       return resolve();
     })   
   },
@@ -97,11 +96,14 @@ const server = {
   getNameAndId (table, id, ...names) { 
     return new Promise ((resolve, reject) => {
       connection.query(`SELECT * FROM ${table}`, async (err, res) => {
+      let r;
       if (err) reject(err);
-      const r = res.map(packet => ({ name: 
-        names.map( name => packet[name]).join(' '), value: packet[id]}));
-      return resolve(r);
-      }); 
+      else if (res && res.length) {
+        r = res.map(packet => ({ name: 
+        names.map( name => packet[name]).join(' '), value: packet[id]}))
+        resolve(r);
+      } else resolve([{name: 'go back', value: null}]);
+      })
     })
   },
 
@@ -121,14 +123,21 @@ const server = {
       return resolve(r);
       }); 
     })
+  },
+
+  sum (id) {
+    return new Promise ((resolve, reject) => {
+      let query = connection.query(`SELECT SUM (salary) AS total_budget FROM employees JOIN roles ON employees.role_id = roles.id JOIN departments ON roles.department_id = departments.id WHERE departments.id = ?`, id, (err, res) => {
+        if (err) reject(err);
+        console.table(res);
+        return resolve(res);
+      })
+   })
   }
-};
+}
 
-connection.connect((err) => {
-  if (err) throw err;
-  server.createTables();
-  console.log(`connected as id ${connection.threadId}\n`);
-});
-
-module.exports = server;
+module.exports = {
+  server,
+  connection,
+}
 
